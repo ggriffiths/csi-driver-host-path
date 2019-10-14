@@ -10,6 +10,7 @@
 
 set -e
 set -o pipefail
+set -x
 
 BASE_DIR=$(dirname "$0")
 
@@ -106,10 +107,17 @@ for component in CSI_PROVISIONER CSI_ATTACHER CSI_SNAPSHOTTER; do
 done
 
 # deploy hostpath plugin and registrar sidecar
-echo "deploying hostpath components"
+
+#SNAPSHOTTER_DISABLED=$(docker exec -ti csi-prow-control-plane /usr/bin/kubeadm config view | grep 'VolumeSnapshotDataSource=true' | echo $?)
+echo "deploying hostpath components. SnapshotterDisabled: yes"
 for i in $(ls ${BASE_DIR}/hostpath/*.yaml | sort); do
     echo "   $i"
-    modified="$(cat "$i" | while IFS= read -r line; do
+    if [[ $i == *"snapshotter"* ]] ; then
+		echo "** SNAPSHOTTER SKIP."
+		echo "** ALPHA GATES: $CSI_PROW_E2E_ALPHA_GATES"
+		continue
+	fi
+	modified="$(cat "$i" | while IFS= read -r line; do
         nocomments="$(echo "$line" | sed -e 's/ *#.*$//')"
         if echo "$nocomments" | grep -q '^[[:space:]]*image:[[:space:]]*'; then
             # Split 'image: quay.io/k8scsi/csi-attacher:v1.0.1'
@@ -149,7 +157,8 @@ done
 # for: the expectation is that we run attacher, provisioner,
 # snapshotter, socat and hostpath plugin in the default namespace.
 cnt=0
-while [ $(kubectl get pods 2>/dev/null | grep '^csi-hostpath.* Running ' | wc -l) -lt 5 ] || ! kubectl describe volumesnapshotclasses.snapshot.storage.k8s.io 2>/dev/null >/dev/null; do
+#while [ $(kubectl get pods 2>/dev/null | grep '^csi-hostpath.* Running ' | wc -l) -lt 3 ] || ! kubectl describe volumesnapshotclasses.snapshot.storage.k8s.io 2>/dev/null >/dev/null; do
+while [ $(kubectl get pods 2>/dev/null | grep '^csi-hostpath.* Running ' | wc -l) -lt 3 ]; do
     if [ $cnt -gt 30 ]; then
         echo "Running pods:"
         kubectl describe pods
@@ -163,5 +172,5 @@ while [ $(kubectl get pods 2>/dev/null | grep '^csi-hostpath.* Running ' | wc -l
 done
 
 # deploy snapshotclass
-echo "deploying snapshotclass"
-kubectl apply -f ${BASE_DIR}/snapshotter/csi-hostpath-snapshotclass.yaml
+#echo "deploying snapshotclass"
+#kubectl apply -f ${BASE_DIR}/snapshotter/csi-hostpath-snapshotclass.yaml
