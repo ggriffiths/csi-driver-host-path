@@ -10,6 +10,7 @@
 
 set -e
 set -o pipefail
+set -x
 
 BASE_DIR=$(dirname "$0")
 
@@ -106,10 +107,17 @@ for component in CSI_PROVISIONER CSI_ATTACHER CSI_SNAPSHOTTER; do
 done
 
 # deploy hostpath plugin and registrar sidecar
-echo "deploying hostpath components"
+
+SNAPSHOTTER_DISABLED=$(docker exec -ti csi-prow-control-plane /usr/bin/kubeadm config view | grep 'VolumeSnapshotDataSource=true' | echo $?)
+echo "deploying hostpath components. SnapshotterDisabled: $SNAPSHOTTER_DISABLED"
 for i in $(ls ${BASE_DIR}/hostpath/*.yaml | sort); do
     echo "   $i"
-    modified="$(cat "$i" | while IFS= read -r line; do
+    if [[ $i == *"snapshotter"* ]] ; then
+		echo "** SNAPSHOTTER SKIP."
+		echo "** ALPHA GATES: $CSI_PROW_E2E_ALPHA_GATES"
+		continue
+	fi
+	modified="$(cat "$i" | while IFS= read -r line; do
         nocomments="$(echo "$line" | sed -e 's/ *#.*$//')"
         if echo "$nocomments" | grep -q '^[[:space:]]*image:[[:space:]]*'; then
             # Split 'image: quay.io/k8scsi/csi-attacher:v1.0.1'
@@ -163,5 +171,5 @@ while [ $(kubectl get pods 2>/dev/null | grep '^csi-hostpath.* Running ' | wc -l
 done
 
 # deploy snapshotclass
-echo "deploying snapshotclass"
-kubectl apply -f ${BASE_DIR}/snapshotter/csi-hostpath-snapshotclass.yaml
+#echo "deploying snapshotclass"
+#kubectl apply -f ${BASE_DIR}/snapshotter/csi-hostpath-snapshotclass.yaml
