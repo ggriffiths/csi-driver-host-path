@@ -259,7 +259,8 @@ configvar CSI_PROW_DEP_VERSION v0.5.1 "golang dep version to be used for vendor 
 # thus only makes sense in repos which provide their own CSI
 # driver. Repos can enable sanity testing by setting
 # CSI_PROW_TESTS_SANITY=sanity.
-configvar CSI_PROW_TESTS "unit parallel serial parallel-alpha serial-alpha sanity" "tests to run"
+#configvar CSI_PROW_TESTS "unit parallel serial parallel-alpha serial-alpha sanity" "tests to run"
+configvar CSI_PROW_TESTS "parallel" "tests to run"
 tests_enabled () {
     local t1 t2
     # We want word-splitting here, so ignore: Quote to prevent word splitting, or split robustly with mapfile or read -a.

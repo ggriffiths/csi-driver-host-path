@@ -10,7 +10,11 @@ CSI_PROW_GINKO_PARALLEL="-p -nodes 40" # default was 7
 #CSI_PROW_HOSTPATH_CANARY=canary
 CSI_PROW_HOSTPATH_DRIVER_NAME="hostpath.csi.k8s.io"
 
-CSI_PROW_TESTS_SANITY="sanity"
+CSI_PROW_TESTS_SANITY=""
+CSI_PROW_E2E_REPO=https://github.com/ggriffiths/kubernetes
+CSI_PROW_E2E_VERSION=add_snapshot_retainpolicy_e2e_test
+#CSI_PROW_E2E_FOCUS="Retain policy"
+
 
 . release-tools/prow.sh
 
